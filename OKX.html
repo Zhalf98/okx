@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OKX 异动监控</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--line:#26334a;--muted:#94a3b8;--text:#e5edf8;--green:#25d695;--red:#ff657a;--blue:#71a7ff;--yellow:#f5c451}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}header{padding:22px clamp(16px,3vw,34px);border-bottom:1px solid var(--line);background:#0e1526}.headerbar{display:flex;align-items:center;justify-content:space-between;gap:16px}.headerstatus{flex-shrink:0}.headcopy{min-width:0}@media(max-width:600px){.headerbar{align-items:flex-start;flex-direction:column;gap:8px}}h1{font-size:23px;margin:0 0 5px}h2{font-size:16px;margin:0 0 12px}.sub,.muted{color:var(--muted)}main{padding:20px clamp(12px,3vw,34px);max-width:1500px;margin:auto}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}.metric{font-size:24px;font-weight:700;margin-top:5px}.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end}.field{display:flex;flex-direction:column;gap:5px;min-width:120px}.field label{font-size:12px;color:var(--muted)}input,select,button{font:inherit;color:var(--text);background:#0b1221;border:1px solid #35445d;border-radius:8px;padding:9px 11px}input[type=file]{max-width:280px}button{cursor:pointer;background:#1d3762;border-color:#31558d}button:hover{filter:brightness(1.15)}button.secondary{background:#172235;border-color:#35445d}button.danger{background:#4a202b;border-color:#743141}.status{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:99px;background:#172235;color:var(--muted)}.dot{width:8px;height:8px;border-radius:50%;background:var(--yellow)}.dot.live{background:var(--green)}.dot.off{background:var(--red)}.panel{margin-bottom:14px}.panelhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}.tablewrap{overflow:auto;max-height:520px;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #202c40}th{position:sticky;top:0;background:#172235;color:#b9c8dc;font-size:12px;z-index:1}tbody tr:hover{background:#182338}.up{color:var(--green);font-weight:700}.down{color:var(--red);font-weight:700}.pill{font-size:11px;padding:3px 7px;border-radius:5px;background:#24334b;color:#c8d7ec}.note{border-left:3px solid var(--blue);padding:9px 12px;background:#111d30;color:#bdcce0;border-radius:4px;margin-top:10px}.log{font:12px/1.5 ui-monospace,monospace;color:var(--muted);max-height:100px;overflow:auto}.empty{text-align:center;color:var(--muted);padding:30px}.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}.small{font-size:12px}.hidden{display:none}@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}@media(max-width:480px){.grid{grid-template-columns:1fr 1fr}.metric{font-size:20px}.card,.panel{padding:12px}}
+
+@media (max-width: 900px) {
+  .dual-alert-layout { grid-template-columns: minmax(0, 1fr) !important; }
+}
+
+/* Day mode: override both theme variables and fixed dark component colors. */
+body[data-theme="light"]{color-scheme:light;--bg:#f3f6fb;--panel:#ffffff;--line:#d7dfeb;--muted:#65748b;--text:#1d2939}
+body[data-theme="light"] header{background:#fff;border-bottom-color:#d7dfeb}
+body[data-theme="light"] .card,body[data-theme="light"] .panel{background:#fff!important;border-color:#d7dfeb!important}
+body[data-theme="light"] input,body[data-theme="light"] select{background:#fff;color:#1d2939;border-color:#c6d1e0}
+body[data-theme="light"] button{background:#e5efff;color:#1e3a66;border-color:#b8cbed}
+body[data-theme="light"] button.secondary{background:#f0f4fa;color:#26364d;border-color:#cbd5e1}
+body[data-theme="light"] button.danger{background:#fff0f1;color:#a3273b;border-color:#efbdc5}
+body[data-theme="light"] .status{background:#edf2f8;color:#58677c}
+body[data-theme="light"] th{background:#eaf0f8;color:#3c4d65}
+body[data-theme="light"] td{border-bottom-color:#e0e6ef}
+body[data-theme="light"] tbody tr:hover{background:#f0f5fc}
+body[data-theme="light"] .note{background:#edf4ff;color:#3b506f;border-left-color:#4f8ce8}
+body[data-theme="light"] .pill{background:#e7edf6;color:#3c4d65}
+.theme-tools{display:flex;align-items:center;gap:10px;flex-shrink:0}
+#themeToggle{white-space:nowrap;padding:7px 11px;background:#172235;border-color:#35445d;color:var(--text)}
+body[data-theme="light"] #themeToggle{background:#f0f4fa;color:#26364d;border-color:#cbd5e1}
+@media(max-width:600px){.theme-tools{flex-wrap:wrap;justify-content:flex-start}}
+@media(max-width:850px){#threeFourMinuteTrendLayout{grid-template-columns:1fr!important}}
+</style>
+</head>
+<body>
+<header><div class="headerbar"><div class="headcopy"><h1>OKX 异动监控</h1><div class="sub">实时监控 OKX 行情。</div></div><div class="theme-tools"><span class="status headerstatus" title="WebSocket 连接状态"><i class="dot" id="statusDot"></i><span id="statusText">未连接</span></span><button id="themeToggle" type="button" aria-label="切换昼夜模式">☀️</button></div></div></header>
+<main>
+  
+  <section class="panel">
+    <div class="panelhead"><h2>实时监控设置</h2><span class="small muted">数据来自 OKX 公共行情</span></div>
+    <div class="controls">
+      <input id="threshold" type="hidden" value="1"><input id="windowSec" type="hidden" value="60"><div class="field"><label for="market">市场类型</label><select id="market"><option value="SWAP" selected>永续合约 SWAP</option><option value="SPOT">现货 SPOT</option></select></div>
+      <div class="field" style="min-width:230px;flex:1"><label for="symbols">监控品种（逗号分隔 instId）</label><input id="symbols" value="BTC-USDT-SWAP,ETH-USDT-SWAP,SOL-USDT-SWAP,DOGE-USDT-SWAP,XRP-USDT-SWAP" placeholder="BTC-USDT,ETH-USDT"/></div>
+      <button id="randomBtn" class="secondary" type="button">获取涨幅前50 + 跌幅前50</button>
+      
+      
+      <button id="startBtn">开始监控</button><button id="stopBtn" class="secondary">停止</button>
+    </div>
+  </section>
+
+<div class="dual-alert-layout" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start">
+<section class="panel" id="oneMinuteAlertPanel" style="border-color:#5b3342;background:linear-gradient(135deg,#1a1726,#121a2b)">
+    <div class="panelhead">
+      <div><h2 style="margin-bottom:3px">⚡ 一分钟内>1%异动</h2><div class="small muted">仅显示过去 60 秒涨跌幅绝对值 ≥ 1% 的品种</div></div>
+      <span class="status"><i class="dot" id="oneMinuteAlertDot"></i><span id="oneMinuteAlertStatus">等待行情</span></span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">
+      <div class="card"><div class="muted">当前一分钟异动数</div><div class="metric" id="oneMinuteAlertCount">0</div></div>
+      <div class="card"><div class="muted">一分钟上涨 ≥ 1%</div><div class="metric up" id="oneMinuteUpCount">0</div></div>
+      <div class="card"><div class="muted">一分钟下跌 ≤ -1%</div><div class="metric down" id="oneMinuteDownCount">0</div></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>品种</th><th>最新价</th><th>60 秒前价格</th><th>一分钟涨跌幅</th><th>首次触发时间</th><th>最近更新</th></tr></thead><tbody id="oneMinuteAlertRows"><tr><td colspan="6" class="empty">等待实时行情；采样满 60 秒后开始判断。</td></tr></tbody></table></div>
+    <div class="small muted" style="margin-top:8px">本区域固定使用 60 秒窗口和 ±1% 阈值，独立于上方常规监控设置。只展示当前仍满足条件的品种；恢复到阈值以内后自动移除。</div>
+  </section>
+<section class="panel" id="twoMinuteTrendPanel" style="border-color:#315b88;background:linear-gradient(135deg,#131e30,#121a2b)">
+    <div class="panelhead">
+      <div><h2 style="margin-bottom:3px">📈 连续两分钟趋势异动</h2><div class="small muted">连续两个 60 秒区间涨幅均 ≥ 0.1%，或跌幅均 ≤ -0.1% 时单独显示</div></div>
+      <span class="status"><i class="dot" id="twoMinuteTrendDot"></i><span id="twoMinuteTrendStatus">等待行情</span></span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">
+      <div class="card"><div class="muted">连续两分钟异动数</div><div class="metric" id="twoMinuteTrendCount">0</div></div>
+      <div class="card"><div class="muted">连续上涨</div><div class="metric up" id="twoMinuteUpCount">0</div></div>
+      <div class="card"><div class="muted">连续下跌</div><div class="metric down" id="twoMinuteDownCount">0</div></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>品种</th><th>最新价</th><th>两分钟前价格</th><th>上一分钟涨跌幅</th><th>最近一分钟涨跌幅</th><th>趋势</th><th>最近更新</th></tr></thead><tbody id="twoMinuteTrendRows"><tr><td colspan="7" class="empty">等待实时行情；采样满 120 秒后开始判断。</td></tr></tbody></table></div>
+    <div class="small muted" style="margin-top:8px">判定方式：比较当前价与约 60 秒前价格、约 60 秒前与约 120 秒前价格；两个区间必须都达到 0.1% 且方向一致。行情采样不足 120 秒时不会触发。</div>
+  </section>
+</div>
+
+
+  
+
+
+  <div class="two" id="threeFourMinuteTrendLayout" style="grid-template-columns:repeat(2,minmax(0,1fr));align-items:start">
+  <section class="panel" id="threeMinuteTrendPanel" style="border-color:#3b765e;background:linear-gradient(135deg,#13251f,#121a2b)">
+    <div class="panelhead">
+      <div><h2 style="margin-bottom:3px">📊 连续三分钟趋势异动</h2><div class="small muted">连续三个 UTC 分钟区间涨幅均 ≥ 0.1%，或跌幅均 ≤ -0.1% 时单独显示</div></div>
+      <span class="status"><i class="dot" id="threeMinuteTrendDot"></i><span id="threeMinuteTrendStatus">等待行情</span></span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">
+      <div class="card"><div class="muted">连续三分钟异动数</div><div class="metric" id="threeMinuteTrendCount">0</div></div>
+      <div class="card"><div class="muted">连续上涨</div><div class="metric up" id="threeMinuteUpCount">0</div></div>
+      <div class="card"><div class="muted">连续下跌</div><div class="metric down" id="threeMinuteDownCount">0</div></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>品种</th><th>最新价</th><th>三分钟前价格</th><th>第三分钟前涨跌幅</th><th>第二分钟前涨跌幅</th><th>最近一分钟涨跌幅</th><th>趋势</th><th>最近更新</th></tr></thead><tbody id="threeMinuteTrendRows"><tr><td colspan="8" class="empty">等待实时行情；采样满 180 秒后开始判断。</td></tr></tbody></table></div>
+    <div class="small muted" style="margin-top:8px">判定方式：以 UTC 每分钟的 :00 为固定边界，检查最近三个完整的 60 秒区间；三个区间必须都达到 0.1% 且方向一致。基准采样缺失或距离边界超过 5 秒时不触发。</div>
+  </section>
+
+  <section class="panel" id="fourMinuteTrendPanel" style="border-color:#8b6fb5;background:linear-gradient(135deg,#211a30,#121a2b)">
+    <div class="panelhead">
+      <div><h2 style="margin-bottom:3px">🧭 连续四分钟趋势异动</h2><div class="small muted">连续四个 UTC 分钟区间涨幅均 ≥ 0.1%，或跌幅均 ≤ -0.1% 时单独显示</div></div>
+      <span class="status"><i class="dot" id="fourMinuteTrendDot"></i><span id="fourMinuteTrendStatus">等待行情</span></span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:12px">
+      <div class="card"><div class="muted">连续四分钟异动数</div><div class="metric" id="fourMinuteTrendCount">0</div></div>
+      <div class="card"><div class="muted">连续上涨</div><div class="metric up" id="fourMinuteUpCount">0</div></div>
+      <div class="card"><div class="muted">连续下跌</div><div class="metric down" id="fourMinuteDownCount">0</div></div>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>品种</th><th>最新价</th><th>四分钟前价格</th><th>第四分钟前涨跌幅</th><th>第三分钟前涨跌幅</th><th>第二分钟前涨跌幅</th><th>最近一分钟涨跌幅</th><th>趋势</th><th>最近更新</th></tr></thead><tbody id="fourMinuteTrendRows"><tr><td colspan="9" class="empty">等待实时行情；采样满 240 秒后开始判断。</td></tr></tbody></table></div>
+    <div class="small muted" style="margin-top:8px">判定方式：以 UTC 每分钟的 :00 为固定边界，检查最近四个完整的 60 秒区间；四个区间必须都达到 0.1% 且方向一致。基准采样缺失或距离边界超过 5 秒时不触发。</div>
+  </section>
+  </div>
+
+<section class="panel" id="liveRankingPanel">
+    <div class="panelhead">
+      <h2 title="按观察窗口涨跌幅绝对值排序，仅显示前 10 名">实时异动榜（前 10）</h2>
+      <div class="controls" style="align-items:center">
+        <input id="filter" placeholder="筛选币种..." aria-label="筛选币种" style="min-width:150px"/>
+      </div>
+    </div>
+    <div class="tablewrap"><table><thead><tr>
+      <th>品种</th><th>最新价</th><th>窗口前价格</th><th>窗口涨跌幅</th><th>窗口最高/最低</th><th>24h 涨跌幅</th><th>最近更新时间</th><th>状态</th>
+    </tr></thead><tbody id="liveRows"><tr><td colspan="8" class="empty">点击“开始监控”连接行情。</td></tr></tbody></table></div>
+  </section>
+
+  <div class="small muted">风险提示：行情延迟、断线、浏览器休眠、交易品种命名或市场类型差异都可能影响结果。本工具仅用于行情观察与历史研究，不构成投资建议，也不会下单。</div>
+</main>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const themeToggle = $('themeToggle');
+  function applyTheme(theme){
+    const light = theme === 'light';
+    document.body.dataset.theme = light ? 'light' : 'dark';
+    document.documentElement.style.colorScheme = light ? 'light' : 'dark';
+    // Button text names the mode that clicking will switch to.
+    themeToggle.textContent = light ? '🌙' : '☀️';
+    themeToggle.setAttribute('aria-label', light ? '当前白天模式，点击切换到夜间模式' : '当前夜间模式，点击切换到白天模式');
+  }
+  applyTheme('dark');
+  themeToggle.addEventListener('click', () => applyTheme(document.body.dataset.theme === 'light' ? 'dark' : 'light'));
+  let ws = null, running = false, reconnectTimer = null, reconnects = 0;
+  let live = new Map(), alertEvents = [], historyRows = [], historyAnalysis = [];
+  let randomPool = [];
+  const log = msg => { const el=$('log'); if(el) el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n`+el.textContent; };
+  const setStatus = (text, cls='') => { $('statusText').textContent=text; $('statusDot').className='dot '+cls; };
+  const parseSymbols = () => [...new Set($('symbols').value.split(/[,，\s]+/).map(x=>x.trim().toUpperCase()).filter(Boolean))];
+  const marketEndpoint = () => 'wss://ws.okx.com:8443/ws/v5/public';
+  function subscribeInBatches(socket, symbols) {
+    let index = 0;
+    const sendNext = () => {
+      if (!running || socket !== ws || socket.readyState !== WebSocket.OPEN) return;
+      const batch = symbols.slice(index, index + 10);
+      if (!batch.length) return;
+      try {
+        socket.send(JSON.stringify({op:'subscribe', args:batch.map(instId=>({channel:'tickers',instId}))}));
+        index += batch.length;
+        if (index < symbols.length) setTimeout(sendNext, 300);
+        else log('已发送全部 '+symbols.length+' 个品种的订阅请求，等待行情数据。');
+      } catch (e) {
+        log('发送订阅失败：'+e.message);
+        setStatus('订阅失败','off');
+      }
+    };
+    sendNext();
+  }
+  async function chooseRandom100() {
+    const market=$('market').value;
+    const endpoint='https://www.okx.com/api/v5/market/tickers?instType='+encodeURIComponent(market);
+    $('randomBtn').disabled=true;
+    $('randomBtn').textContent='正在获取涨跌幅榜…';
+    try {
+      const resp=await fetch(endpoint);
+      if(!resp.ok) throw new Error('HTTP '+resp.status);
+      const json=await resp.json();
+      if(json.code!=='0'||!Array.isArray(json.data)) throw new Error(json.msg||'OKX 返回行情数据异常');
+      const isEligible=x=>{
+        if(!x||!x.instId) return false;
+        if(market==='SWAP') return x.instId.endsWith('-USDT-SWAP');
+        if(market==='SPOT') return x.instId.endsWith('-USDT');
+        return false;
+      };
+      const ranked=json.data.filter(isEligible).map(x=>{
+        const last=Number(x.last),open=Number(x.open24h);
+        return {...x,changePct:last>0&&open>0?(last/open-1)*100:null};
+      }).filter(x=>x.changePct!==null&&Number.isFinite(x.changePct));
+      if(ranked.length<2) throw new Error('OKX 返回的有效 USDT 行情不足，无法生成涨跌幅榜。');
+      ranked.sort((a,b)=>b.changePct-a.changePct);
+      const gainers=ranked.slice(0,Math.min(50,ranked.length));
+      const losers=ranked.slice(Math.max(0,ranked.length-50)).reverse();
+      const selected=[...new Set([...gainers,...losers].map(x=>x.instId))];
+      randomPool=selected;
+      $('symbols').value=selected.join(',');
+      log('已获取 OKX 24 小时涨幅榜前 '+gainers.length+' 个、跌幅榜前 '+losers.length+' 个；去重后共 '+selected.length+' 个品种。点击“开始监控”启动。');
+    } catch(e) {
+      log('获取涨跌幅榜失败：'+e.message+'。请检查网络或稍后重试。');
+      alert('获取涨跌幅榜失败：'+e.message+'。如果是浏览器跨域限制，可稍后重试或手动填写品种。');
+    } finally {
+      $('randomBtn').disabled=false;
+      $('randomBtn').textContent='获取涨幅前50 + 跌幅前50';
+    }
+  }
+  function start() {
+    stop(false);
+    const symbols=parseSymbols();
+    if (!symbols.length) { log('请至少输入一个 instId。'); return; }
+    if (!Number.isFinite(+$('threshold').value) || +$('threshold').value<=0) { log('阈值必须大于 0。'); return; }
+    running=true; reconnects=0; setStatus('连接中');
+    log('启动监控：市场类型 '+$('market').value+'，共 '+symbols.length+' 个品种。');
+    const instType=$('market').value;
+    live = new Map(symbols.map(instId=>[instId,{instId, samples:[], last:null, change:null, base:null, high:null, low:null, dayChange:null, updated:null, lastSampleAt:0}]));
+    renderLive();
+    try {
+      ws = new WebSocket(marketEndpoint());
+      ws.onopen = () => {
+        setStatus('已连接，订阅中','live');
+        log('WebSocket 已连接，准备分批订阅 '+symbols.length+' 个品种。');
+        subscribeInBatches(ws, symbols);
+      };
+      ws.onmessage = ev => {
+        let msg; try { msg=JSON.parse(ev.data); } catch { return; }
+        if (msg.event==='error') { log('订阅错误：'+(msg.msg||JSON.stringify(msg))+'；请确认品种属于所选市场类型。'); setStatus('订阅错误','off'); return; }
+        if (msg.event==='subscribe') { return; }
+        if (!msg.data || !msg.arg) return;
+        const now=Date.now(), windowMs=+$('windowSec').value*1000;
+        for (const d of msg.data) {
+          const item=live.get(d.instId); if(!item) continue;
+          const px=Number(d.last); if(!Number.isFinite(px)||px<=0) continue;
+          item.last=px; item.updated=now; item.high=Number(d.high24h)||null; item.low=Number(d.low24h)||null;
+          const open24=Number(d.open24h); item.dayChange=open24>0?(px/open24-1)*100:null;
+          // Keep a stable time series (~1 sample/second), rather than hundreds of duplicate
+          // ticker heartbeats per second. This makes the comparison window easier to audit.
+          if(!item.lastSampleAt || now-item.lastSampleAt>=900) {
+            item.samples.push({t:now,p:px}); item.lastSampleAt=now;
+          }
+          item.samples=item.samples.filter(s=>s.t>=now-Math.max(windowMs+15000,320000));
+          const target=Math.floor(now/windowMs)*windowMs; // 固定 UTC 窗口边界
+          const baseSample=item.samples.filter(s=>s.t<=target).at(-1);
+          const baselineFresh=baseSample && target-baseSample.t<=5000;
+          item.base=baselineFresh?baseSample.p:null;
+          item.change=item.base>0?((px/item.base)-1)*100:null;
+          if(item.change!==null && Math.abs(item.change)>=+$('threshold').value) {
+            const key=item.instId;
+            if(!item.alerting) {
+              item.alerting=true;
+              item.alertStarted=now;
+              alertEvents.unshift({time:new Date(now).toISOString(),instId:key,price:px,change:item.change});
+              alertEvents=alertEvents.slice(0,500);
+            }
+          } else { item.alerting=false; item.alertStarted=null; }
+        }
+        if($('lastUpdate')) $('lastUpdate').textContent=new Date(now).toLocaleTimeString();
+        renderLive();
+      };
+      ws.onerror = () => { setStatus('连接错误','off'); log('WebSocket 连接错误；请检查网络或稍后重试。'); };
+      ws.onclose = () => {
+        if(running) {
+          setStatus('连接断开','off'); log('连接已断开。3 秒后尝试重连。');
+          clearTimeout(reconnectTimer);
+          reconnectTimer=setTimeout(()=>{if(running && reconnects<10){reconnects++;startReconnect(symbols)}else if(running){setStatus('重连失败','off');log('重连次数已达上限，请手动重新开始。');}},3000);
+        } else setStatus('已停止');
+      };
+    } catch(e) { setStatus('连接失败','off'); log(String(e)); }
+    if($('watchCount')) $('watchCount').textContent=symbols.length;
+  }
+  function startReconnect(symbols) {
+    if(!running)return;
+    try {
+      ws=new WebSocket(marketEndpoint());
+      ws.onopen=()=>{
+        setStatus('已重连，订阅中','live');log('WebSocket 已重新连接，正在分批恢复订阅。');
+        subscribeInBatches(ws, symbols);
+      };
+      ws.onmessage=ev=>{
+        let msg;try{msg=JSON.parse(ev.data)}catch{return}
+        if(!msg.data||!msg.arg)return;
+        const now=Date.now(),win=+$('windowSec').value*1000;
+        for(const d of msg.data){const x=live.get(d.instId);if(!x)continue;const p=+d.last;if(!(p>0))continue;x.last=p;x.updated=now;if(!x.lastSampleAt||now-x.lastSampleAt>=900){x.samples.push({t:now,p});x.lastSampleAt=now;}x.samples=x.samples.filter(s=>s.t>=now-Math.max(win+15000,320000));const target=Math.floor(now/win)*win;const b=x.samples.filter(s=>s.t<=target).at(-1);const fresh=b&&target-b.t<=5000;x.base=fresh?b.p:null;x.change=x.base>0?(p/x.base-1)*100:null;const o=+d.open24h;x.dayChange=o>0?(p/o-1)*100:null;x.high=+d.high24h||null;x.low=+d.low24h||null;}
+        if($('lastUpdate')) $('lastUpdate').textContent=new Date(now).toLocaleTimeString();renderLive();
+      };
+      ws.onclose=()=>{if(running){clearTimeout(reconnectTimer);reconnectTimer=setTimeout(()=>{if(running&&reconnects<10){reconnects++;startReconnect(symbols)}},3000)}};
+      ws.onerror=()=>setStatus('连接错误','off');
+    }catch(e){log('重连失败：'+e)}
+  }
+  function stop(write=true) {
+    running=false; clearTimeout(reconnectTimer);
+    if(ws){const old=ws;ws=null;try{old.onclose=null;old.close()}catch{}}
+    setStatus('已停止'); if(write)log('监控已停止。');
+  }
+  function fmt(v) { if(v===null||v===undefined||!Number.isFinite(v))return '—'; return v.toLocaleString('en-US',{maximumSignificantDigits:10}); }
+  function pct(v) { if(v===null||!Number.isFinite(v))return '采样中'; return (v>=0?'+':'')+v.toFixed(3)+'%'; }
+  function renderLive() {
+    const q=$('filter').value.trim().toUpperCase(), allRows=[...live.values()].filter(x=>x.instId.includes(q)).sort((a,b)=>Math.abs(b.change??0)-Math.abs(a.change??0));
+    const arr=allRows.slice(0,10);
+    if($('alertCount')) $('alertCount').textContent=[...live.values()].filter(x=>x.change!==null&&Math.abs(x.change)>=+$('threshold').value).length;
+    if(!arr.length){$('liveRows').innerHTML='<tr><td colspan="8" class="empty">没有匹配品种。</td></tr>';renderOneMinuteAlerts();renderTwoMinuteTrendAlerts();renderThreeMinuteTrendAlerts();renderFourMinuteTrendAlerts();return}
+    if($('liveRows')) $('liveRows').innerHTML=arr.map(x=>{
+      const cls=x.change===null?'':x.change>=0?'up':'down';
+      const active=x.change!==null&&Math.abs(x.change)>=+$('threshold').value;
+      const windowText=x.change===null?(x.last===null?'等待报价':'采样中（需完整窗口）'):pct(x.change);
+      const status=active?'<span class="pill">异动</span>':x.change===null?'<span class="muted">采样中</span>':'<span class="muted">正常</span>';
+      return `<tr><td><b>${esc(x.instId)}</b></td><td>${fmt(x.last)}</td><td>${fmt(x.base)}</td><td class="${cls}">${windowText}</td><td>${fmt(x.high)} / ${fmt(x.low)}</td><td class="${(x.dayChange??0)>=0?'up':'down'}">${pct(x.dayChange)}</td><td>${x.updated?new Date(x.updated).toLocaleTimeString():'等待报价'}</td><td>${status}</td></tr>`;
+    }).join('');
+    renderOneMinuteAlerts();
+    renderTwoMinuteTrendAlerts();
+    renderThreeMinuteTrendAlerts();
+    renderFourMinuteTrendAlerts();
+  }
+  function renderOneMinuteAlerts() {
+    const now=Date.now(), windowMs=60000, threshold=1;
+    const hits=[];
+    for(const x of live.values()) {
+      const minuteBoundary=Math.floor(now/windowMs)*windowMs;
+      const sample=x.samples.filter(s=>s.t<=minuteBoundary).at(-1);
+      if(!sample || x.last===null || !x.updated || now-x.updated>15000) continue;
+      const change=(x.last/sample.p-1)*100;
+      if(Math.abs(change)>=threshold) hits.push({...x,minuteBase:sample.p,minuteChange:change});
+    }
+    hits.sort((a,b)=>Math.abs(b.minuteChange)-Math.abs(a.minuteChange));
+    $('oneMinuteAlertCount').textContent=hits.length;
+    $('oneMinuteUpCount').textContent=hits.filter(x=>x.minuteChange>=1).length;
+    $('oneMinuteDownCount').textContent=hits.filter(x=>x.minuteChange<=-1).length;
+    $('oneMinuteAlertStatus').textContent=running?'实时扫描中':'监控已停止';
+    $('oneMinuteAlertDot').className='dot '+(running?'live':'');
+    $('oneMinuteAlertRows').innerHTML=hits.length?hits.map(x=>`<tr><td><b>${esc(x.instId)}</b></td><td>${fmt(x.last)}</td><td>${fmt(x.minuteBase)}</td><td class="${x.minuteChange>=0?'up':'down'}">${pct(x.minuteChange)}</td><td>${x.alertStarted?new Date(x.alertStarted).toLocaleTimeString():'—'}</td><td>${x.updated?new Date(x.updated).toLocaleTimeString():'—'}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">当前没有品种达到一分钟 ±1% 条件。</td></tr>';
+  }
+  function renderTwoMinuteTrendAlerts() {
+    const now=Date.now(), minute=60000, threshold=0.1, hits=[];
+    for(const x of live.values()) {
+      if(x.last===null || !x.updated || now-x.updated>15000) continue;
+      const samples=x.samples;
+      const boundary=Math.floor(now/minute)*minute;
+      const s0=samples.filter(s=>s.t<=boundary).at(-1);
+      const s60=samples.filter(s=>s.t<=boundary-minute).at(-1);
+      const s120=samples.filter(s=>s.t<=boundary-2*minute).at(-1);
+      if(!s0 || !s60 || !s120 || !(s0.p>0) || !(s60.p>0) || !(s120.p>0)) continue;
+      // 每个基准价必须靠近对应 UTC :00 边界，避免缺采样时误判。
+      if(boundary-s0.t>5000 || boundary-minute-s60.t>5000 || boundary-2*minute-s120.t>5000) continue;
+      const lastMinute=(s0.p/s60.p-1)*100;
+      const previousMinute=(s60.p/s120.p-1)*100;
+      const sameUp=previousMinute>=threshold && lastMinute>=threshold;
+      const sameDown=previousMinute<=-threshold && lastMinute<=-threshold;
+      if(sameUp || sameDown) hits.push({...x, twoMinuteBase:s120.p, previousMinute, lastMinute, trend:sameUp?'连续上涨':'连续下跌'});
+    }
+    hits.sort((a,b)=>Math.abs(b.previousMinute)+Math.abs(b.lastMinute)-Math.abs(a.previousMinute)-Math.abs(a.lastMinute));
+    $('twoMinuteTrendCount').textContent=hits.length;
+    $('twoMinuteUpCount').textContent=hits.filter(x=>x.trend==='连续上涨').length;
+    $('twoMinuteDownCount').textContent=hits.filter(x=>x.trend==='连续下跌').length;
+    $('twoMinuteTrendStatus').textContent=running?'实时扫描中':'监控已停止';
+    $('twoMinuteTrendDot').className='dot '+(running?'live':'');
+    $('twoMinuteTrendRows').innerHTML=hits.length?hits.map(x=>`<tr><td><b>${esc(x.instId)}</b></td><td>${fmt(x.last)}</td><td>${fmt(x.twoMinuteBase)}</td><td class="${x.previousMinute>=0?'up':'down'}">${pct(x.previousMinute)}</td><td class="${x.lastMinute>=0?'up':'down'}">${pct(x.lastMinute)}</td><td class="${x.trend==='连续上涨'?'up':'down'}">${x.trend}</td><td>${x.updated?new Date(x.updated).toLocaleTimeString():'—'}</td></tr>`).join(''):'<tr><td colspan="7" class="empty">当前没有品种满足连续两分钟同方向 ±0.1% 条件。</td></tr>';
+  }
+
+
+
+  function renderThreeMinuteTrendAlerts() {
+    const now=Date.now(), minute=60000, threshold=0.1, hits=[];
+    const boundary=Math.floor(now/minute)*minute;
+    for(const x of live.values()) {
+      if(x.last===null || !x.updated || now-x.updated>15000) continue;
+      const samples=x.samples;
+      const s0=samples.filter(s=>s.t<=boundary).at(-1);
+      const s60=samples.filter(s=>s.t<=boundary-minute).at(-1);
+      const s120=samples.filter(s=>s.t<=boundary-2*minute).at(-1);
+      const s180=samples.filter(s=>s.t<=boundary-3*minute).at(-1);
+      if(!s0 || !s60 || !s120 || !s180 || !(s0.p>0) || !(s60.p>0) || !(s120.p>0) || !(s180.p>0)) continue;
+      if(boundary-s0.t>5000 || boundary-minute-s60.t>5000 || boundary-2*minute-s120.t>5000 || boundary-3*minute-s180.t>5000) continue;
+      const latestMinute=(s0.p/s60.p-1)*100;
+      const middleMinute=(s60.p/s120.p-1)*100;
+      const oldestMinute=(s120.p/s180.p-1)*100;
+      const sameUp=oldestMinute>=threshold && middleMinute>=threshold && latestMinute>=threshold;
+      const sameDown=oldestMinute<=-threshold && middleMinute<=-threshold && latestMinute<=-threshold;
+      if(sameUp || sameDown) hits.push({...x, threeMinuteBase:s180.p, oldestMinute, middleMinute, latestMinute, trend:sameUp?'连续上涨':'连续下跌'});
+    }
+    hits.sort((a,b)=>Math.abs(b.oldestMinute)+Math.abs(b.middleMinute)+Math.abs(b.latestMinute)-Math.abs(a.oldestMinute)-Math.abs(a.middleMinute)-Math.abs(a.latestMinute));
+    $('threeMinuteTrendCount').textContent=hits.length;
+    $('threeMinuteUpCount').textContent=hits.filter(x=>x.trend==='连续上涨').length;
+    $('threeMinuteDownCount').textContent=hits.filter(x=>x.trend==='连续下跌').length;
+    $('threeMinuteTrendStatus').textContent=running?'实时扫描中':'监控已停止';
+    $('threeMinuteTrendDot').className='dot '+(running?'live':'');
+    $('threeMinuteTrendRows').innerHTML=hits.length?hits.map(x=>`<tr><td><b>${esc(x.instId)}</b></td><td>${fmt(x.last)}</td><td>${fmt(x.threeMinuteBase)}</td><td class="${x.oldestMinute>=0?'up':'down'}">${pct(x.oldestMinute)}</td><td class="${x.middleMinute>=0?'up':'down'}">${pct(x.middleMinute)}</td><td class="${x.latestMinute>=0?'up':'down'}">${pct(x.latestMinute)}</td><td class="${x.trend==='连续上涨'?'up':'down'}">${x.trend}</td><td>${x.updated?new Date(x.updated).toLocaleTimeString():'—'}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">当前没有品种满足连续三分钟同方向 ±0.1% 条件。</td></tr>';
+  }
+  function renderFourMinuteTrendAlerts() {
+    const now=Date.now(), minute=60000, threshold=0.1, hits=[];
+    const boundary=Math.floor(now/minute)*minute;
+    for(const x of live.values()) {
+      if(x.last===null || !x.updated || now-x.updated>15000) continue;
+      const samples=x.samples;
+      const s0=samples.filter(s=>s.t<=boundary).at(-1);
+      const s60=samples.filter(s=>s.t<=boundary-minute).at(-1);
+      const s120=samples.filter(s=>s.t<=boundary-2*minute).at(-1);
+      const s180=samples.filter(s=>s.t<=boundary-3*minute).at(-1);
+      const s240=samples.filter(s=>s.t<=boundary-4*minute).at(-1);
+      if(!s0||!s60||!s120||!s180||!s240||![s0.p,s60.p,s120.p,s180.p,s240.p].every(p=>p>0)) continue;
+      if(boundary-s0.t>5000||boundary-minute-s60.t>5000||boundary-2*minute-s120.t>5000||boundary-3*minute-s180.t>5000||boundary-4*minute-s240.t>5000) continue;
+      const latestMinute=(s0.p/s60.p-1)*100;
+      const minute2=(s60.p/s120.p-1)*100;
+      const minute3=(s120.p/s180.p-1)*100;
+      const minute4=(s180.p/s240.p-1)*100;
+      const sameUp=[minute4,minute3,minute2,latestMinute].every(v=>v>=threshold);
+      const sameDown=[minute4,minute3,minute2,latestMinute].every(v=>v<=-threshold);
+      if(sameUp||sameDown) hits.push({...x,fourMinuteBase:s240.p,minute4,minute3,minute2,latestMinute,trend:sameUp?'连续上涨':'连续下跌'});
+    }
+    hits.sort((a,b)=>Math.abs(b.minute4)+Math.abs(b.minute3)+Math.abs(b.minute2)+Math.abs(b.latestMinute)-Math.abs(a.minute4)-Math.abs(a.minute3)-Math.abs(a.minute2)-Math.abs(a.latestMinute));
+    $('fourMinuteTrendCount').textContent=hits.length;
+    $('fourMinuteUpCount').textContent=hits.filter(x=>x.trend==='连续上涨').length;
+    $('fourMinuteDownCount').textContent=hits.filter(x=>x.trend==='连续下跌').length;
+    $('fourMinuteTrendStatus').textContent=running?'实时扫描中':'监控已停止';
+    $('fourMinuteTrendDot').className='dot '+(running?'live':'');
+    $('fourMinuteTrendRows').innerHTML=hits.length?hits.map(x=>`<tr><td><b>${esc(x.instId)}</b></td><td>${fmt(x.last)}</td><td>${fmt(x.fourMinuteBase)}</td><td class="${x.minute4>=0?'up':'down'}">${pct(x.minute4)}</td><td class="${x.minute3>=0?'up':'down'}">${pct(x.minute3)}</td><td class="${x.minute2>=0?'up':'down'}">${pct(x.minute2)}</td><td class="${x.latestMinute>=0?'up':'down'}">${pct(x.latestMinute)}</td><td class="${x.trend==='连续上涨'?'up':'down'}">${x.trend}</td><td>${x.updated?new Date(x.updated).toLocaleTimeString():'—'}</td></tr>`).join(''):'<tr><td colspan="9" class="empty">当前没有品种满足连续四分钟同方向 ±0.1% 条件。</td></tr>';
+  }
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  $('startBtn').onclick=start; $('stopBtn').onclick=()=>stop();
+  $('filter').addEventListener('input', renderLive);
+  $('randomBtn').onclick=chooseRandom100;
+  $('market').onchange=()=>{randomPool=[];log('市场类型已更改；请点击“获取涨幅前50 + 跌幅前50”重新获取对应市场排行榜。');};
+  $('threshold').onchange=renderLive;
+  $('windowSec').onchange=()=>{for(const x of live.values()){x.samples=[];x.lastSampleAt=0;x.base=null;x.change=null;}renderLive();if(running){log('观察窗口已更改，正在重新采样。');start();}};
+  function parseCSV(text) {
+    // Handles quoted CSV fields, including commas and escaped quotes.
+    const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2)throw new Error('文件没有数据行');
+    const splitLine=line=>{let out=[],v='',quoted=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'&&quoted){v+='"';i++}else if(c==='"')quoted=!quoted;else if(c===','&&!quoted){out.push(v.trim());v=''}else v+=c}out.push(v.trim());return out};
+    const heads=splitLine(lines[0]).map(h=>h.toLowerCase().replace(/[\s_\-]/g,''));
+    const find=names=>heads.findIndex(h=>names.includes(h));
+    const ix={symbol:find(['instid','instrument','symbol','instrumentid']),ts:find(['ts','timestamp','time','datetime','candle']),open:find(['open','o']),high:find(['high','h']),low:find(['low','l']),close:find(['close','c','last']),vol:find(['vol','volume','basevolume'])};
+    if(ix.close<0||ix.ts<0)throw new Error('至少需要时间列（ts/timestamp/time）和收盘价列（close/c）');
+    const out=[];
+    for(let i=1;i<lines.length;i++){
+      const a=splitLine(lines[i]),raw=a[ix.ts];let t=Number(raw);
+      if(!Number.isFinite(t)){t=Date.parse(raw)}
+      else if(t<1e11)t*=1000;
+      const close=Number(a[ix.close]);if(!Number.isFinite(t)||!Number.isFinite(close)||close<=0)continue;
+      out.push({instId:ix.symbol>=0?(a[ix.symbol]||'UNKNOWN'):'UNKNOWN',t,open:ix.open>=0?num(a[ix.open]):null,high:ix.high>=0?num(a[ix.high]):null,low:ix.low>=0?num(a[ix.low]):null,close,vol:ix.vol>=0?num(a[ix.vol]):null});
+    }
+    return out;
+  }
+  function num(v){const n=Number(v);return Number.isFinite(n)?n:null}
+  $('analyzeBtn').onclick=()=>{
+    if(!historyRows.length){alert('请先选择 CSV 文件。');return}
+    const threshold=+$('histThreshold').value;if(!(threshold>0)){alert('阈值必须大于 0');return}
+    const sorted=[...historyRows].sort((a,b)=>a.instId.localeCompare(b.instId)||a.t-b.t);
+    historyAnalysis=[];let up=0,down=0;
+    const prev=new Map();
+    for(const r of sorted){const p=prev.get(r.instId);if(p){const change=(r.close/p.close-1)*100;const row={...r,prevClose:p.close,change};if(Math.abs(change)>=threshold){historyAnalysis.push(row);if(change>0)up++;else down++;}}prev.set(r.instId,r)}
+    $('histAlerts').textContent=historyAnalysis.length;$('histUp').textContent=up;$('histDown').textContent=down;
+    const show=historyAnalysis.slice().sort((a,b)=>Math.abs(b.change)-Math.abs(a.change)).slice(0,1000);
+    $('histRows').innerHTML=show.length?show.map(r=>`<tr><td>${esc(new Date(r.t).toLocaleString())}</td><td><b>${esc(r.instId)}</b></td><td>${fmt(r.prevClose)}</td><td>${fmt(r.close)}</td><td class="${r.change>=0?'up':'down'}">${pct(r.change)}</td><td>${fmt(r.high)}</td><td>${fmt(r.low)}</td><td>${fmt(r.vol)}</td></tr>`).join(''):'<tr><td colspan="8" class="empty">没有记录超过设定阈值。</td></tr>';
+    $('histSummary').textContent=`符合阈值的记录共 ${historyAnalysis.length} 条；表格最多显示 1,000 条，按涨跌幅绝对值排序。注意：历史分析使用同一品种相邻记录的收盘价变化。`;
+  };
+  $('exportHist').onclick=()=>{
+    if(!historyAnalysis.length){alert('没有可导出的分析结果，请先导入并分析。');return}
+    downloadCSV('okx_historical_anomalies.csv',[['time','instId','previous_close','close','change_pct','open','high','low','volume'],...historyAnalysis.map(r=>[new Date(r.t).toISOString(),r.instId,r.prevClose,r.close,r.change,r.open,r.high,r.low,r.vol])]);
+  };
+  function downloadCSV(name,rows){const csv=rows.map(row=>row.map(v=>{const s=v===null||v===undefined?'':String(v);return /[",\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(',')).join('\r\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
+})();
+</script>
+</body>
+</html>
